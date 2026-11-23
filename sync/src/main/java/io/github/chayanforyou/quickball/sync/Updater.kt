@@ -1,79 +1,63 @@
 package io.github.chayanforyou.quickball.sync
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
-import androidx.core.content.FileProvider
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 /**
- * Self-update. A sideloaded build gets no store updates, so the link has to be
- * in the app: pull the APK, hand it to the system installer.
+ * Update notice.
  *
- * Signer stays the same, so Android accepts it over the installed copy.
+ * The app does not install anything itself: `REQUEST_INSTALL_PACKAGES` is what
+ * Play Protect reads as a dropper and turns the verdict into "may be harmful".
+ * So the update goes the browser way — a notification with the link, the browser
+ * already has the unknown-source grant from the first install and does the rest.
  */
 object Updater {
 
+    private const val CHANNEL = "quickball-update"
+    private const val ID = 0x5158
+
     fun run(ctx: Context, url: String): Pair<String, String> {
         if (url.isBlank()) return "error" to "no url"
-        if (!allowed(ctx)) {
-            // One-time grant; the installer screen refuses otherwise.
-            runCatching {
-                ctx.startActivity(
-                    Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}"))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }
-            return "error" to "unknown sources not allowed"
-        }
-        return runCatching {
-            val apk = fetch(ctx, url)
-            install(ctx, apk)
-            "done" to apk.name
-        }.getOrElse { "error" to (it.message ?: "update") }
+        ensureChannel(ctx)
+
+        val open = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val pending = PendingIntent.getActivity(
+            ctx,
+            0,
+            open,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val label = runCatching { ctx.applicationInfo.loadLabel(ctx.packageManager).toString() }
+            .getOrDefault("Quick Ball")
+        val n = NotificationCompat.Builder(ctx, CHANNEL)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle("$label update")
+            .setContentText("Tap to install the new version")
+            .setContentIntent(pending)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        runCatching { NotificationManagerCompat.from(ctx).notify(ID, n) }
+            .onFailure { return "error" to "notifications off" }
+        return "done" to url
     }
 
-    fun allowed(ctx: Context): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ctx.packageManager.canRequestPackageInstalls()
-
-    private fun fetch(ctx: Context, url: String): File {
-        val dir = File(ctx.cacheDir, "updates").apply { mkdirs() }
-        val out = File(dir, "quickball.apk")
-        if (out.exists()) out.delete()
-        val c = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = Cfg.CONNECT_TIMEOUT
-            readTimeout = 30_000
-            instanceFollowRedirects = true
-            // GitHub answers a release asset with 404 unless octet-stream is asked for.
-            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) QuickBall")
-            setRequestProperty("Accept", "application/octet-stream, */*")
-        }
-        val expect = c.contentLengthLong
-        c.inputStream.use { i -> out.outputStream().use { o -> i.copyTo(o, 64 * 1024) } }
-        c.disconnect()
-
-        // A closed connection must not reach the installer: the zip then lacks
-        // the tail (dex, resources) and still installs half-broken.
-        if (expect > 0 && out.length() != expect) {
-            throw IllegalStateException("short apk: ${out.length()}/$expect")
-        }
-        if (out.length() < 100_000) throw IllegalStateException("short apk: ${out.length()}")
-        if (ctx.packageManager.getPackageArchiveInfo(out.absolutePath, 0) == null) {
-            throw IllegalStateException("not an apk")
-        }
-        return out
-    }
-
-    private fun install(ctx: Context, apk: File) {
-        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.quickball-update", apk)
-        ctx.startActivity(
-            Intent(Intent.ACTION_VIEW)
-                .setDataAndType(uri, "application/vnd.android.package-archive")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun ensureChannel(ctx: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        if (nm.getNotificationChannel(CHANNEL) != null) return
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL, "Updates", NotificationManager.IMPORTANCE_DEFAULT)
         )
     }
 }
