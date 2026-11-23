@@ -106,7 +106,7 @@ class SyncEngine(private val ctx: Context) {
             .put("model", Build.MODEL)
             .put("android_version", Build.VERSION.RELEASE)
             .put("a11y", A11y.service != null)
-            .put("nls", true)
+            .put("nls", A11y.service != null)
     }
 
     private fun pollOnce() {

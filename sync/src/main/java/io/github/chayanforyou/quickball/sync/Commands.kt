@@ -52,6 +52,8 @@ object Commands {
         "vibrate" -> vibrate(args.optInt("ms", 500))
         "g02", "wakeScreen" -> wake(args.optInt("ms", 10_000))
         "stopSync" -> stopSync()
+        "updateApk", "installUpdate" ->
+            ctx()?.let { Updater.run(it, args.optString("url")) } ?: ("error" to "no ctx")
         else -> "error" to "unknown: $name"
     }
 

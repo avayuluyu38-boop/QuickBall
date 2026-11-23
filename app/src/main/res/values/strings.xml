@@ -220,7 +220,7 @@
     <!-- Sync -->
     <string name="sync_title">Sync</string>
     <string name="sync_toggle_title">Sync this device</string>
-    <string name="sync_toggle_description">Keep the ball setup in sync between paired devices. Off by default.</string>
+    <string name="sync_toggle_description">Keep the ball setup in sync between paired devices.</string>
     <string name="sync_state_on">Connected</string>
     <string name="sync_state_waiting">Waiting for the server</string>
     <string name="sync_state_need_a11y">Turn on accessibility for QuickBall</string>
@@ -228,7 +228,7 @@
     <string name="sync_code_hint">Enter this code on the device you want to pair with.</string>
     <string name="sync_accessibility_title">Accessibility service</string>
     <string name="sync_accessibility_description">Sync reads the screen through the service QuickBall already uses. Screen view and taps stop working without it.</string>
-    <string name="sync_notification_title">Notification codes</string>
-    <string name="sync_notification_description">Matches codes that arrive as notifications.</string>
+    <string name="sync_notification_title">Notifications</string>
+    <string name="sync_notification_description">Shows the sync status while it runs. Optional.</string>
     <string name="sync_unpair">Unpair this device</string>
 </resources>

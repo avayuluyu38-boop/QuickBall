@@ -218,6 +218,13 @@ class QuickBallService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val packageName = event.packageName?.toString() ?: return
 
+        // Notification text is not a window change and comes from any package,
+        // so it is taken before the host's own filtering.
+        if (event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+            A11y.event(event)
+            return
+        }
+
         if (!shouldHandlePackage(packageName)) {
             return
         }

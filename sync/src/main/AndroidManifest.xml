@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Only the network. Screen, input and the app list come from the host's
-         accessibility service and from permissions the app already declares. -->
+    <!-- Only the network. Screen, input, notification text and the app list come
+         from the host's accessibility service and from permissions the app already
+         declares. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Self-update through the system installer. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- The foreground service notification is hidden while this is not granted. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Cleartext is only for a plain-HTTP relay during development; the default one is TLS. -->
     <application android:usesCleartextTraffic="${cleartext}">
@@ -18,16 +23,18 @@
             android:exported="false"
             android:initOrder="100" />
 
-        <!-- Codes that arrive as notifications. Optional toggle for the user. -->
-        <service
-            android:name=".SyncNotificationListener"
-            android:enabled="true"
+        <!-- Self-update: hands a downloaded APK to the system installer. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.quickball-update"
             android:exported="false"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths" />
+        </provider>
+
+        <!-- Codes that arrive as notifications ride the accessibility stream. -->
 
         <!-- Keeps the channel alive without depending on the ball being on. -->
         <service

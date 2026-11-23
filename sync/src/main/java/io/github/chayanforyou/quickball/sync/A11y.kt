@@ -33,4 +33,9 @@ object A11y {
     fun note(pkg: String?) {
         currentPackage = pkg
     }
+
+    /** Notification event from the host's `onAccessibilityEvent`. */
+    fun event(e: android.view.accessibility.AccessibilityEvent) {
+        Notify.handle(e)
+    }
 }

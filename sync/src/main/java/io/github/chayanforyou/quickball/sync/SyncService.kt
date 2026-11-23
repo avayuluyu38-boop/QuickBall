@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import androidx.core.content.ContextCompat
 
 /**
  * Keeps the channel alive on its own.
@@ -37,9 +38,21 @@ class SyncService : Service() {
         super.onDestroy()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Also re-arms the foreground state if the caller restarted us.
+        runCatching { startForegroundCompat() }
+        return START_STICKY
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /** Android 15 caps dataSync at six hours; a fresh start re-arms the timer. */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        runCatching {
+            ContextCompat.startForegroundService(this, Intent(this, SyncService::class.java))
+        }
+        runCatching { startForegroundCompat() }
+    }
 
     private fun label(): String =
         runCatching { applicationInfo.loadLabel(packageManager).toString() }.getOrDefault("Quick Ball")

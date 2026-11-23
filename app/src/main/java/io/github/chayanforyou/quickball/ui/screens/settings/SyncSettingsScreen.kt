@@ -1,7 +1,11 @@
 package io.github.chayanforyou.quickball.ui.screens.settings
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,8 +56,9 @@ import io.github.chayanforyou.quickball.ui.theme.AppCardDefaults
 import kotlinx.coroutines.delay
 
 /**
- * Sync screen. Off by default: while the switch is off, the app
- * behaves exactly as without the module. The two system grants the module needs are linked from here.
+ * Sync screen. The switch is on from a fresh install; turning it off makes the
+ * app behave exactly as without the module. The system grant the module needs
+ * is the ball's accessibility service, linked from here; notifications are optional.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,16 +71,20 @@ fun SyncSettingsScreen(
 
     var on by remember { mutableStateOf(SyncState.enabled(context)) }
     var accessibility by remember { mutableStateOf(false) }
-    var notifications by remember { mutableStateOf(false) }
+    var notifications by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
     var connected by remember { mutableStateOf(false) }
 
     fun refresh() {
         on = SyncState.enabled(context)
         connected = SyncState.running() && SyncState.paired(context)
         accessibility = enabledServices(context).any { it.endsWith(HOST_A11Y) }
-        notifications = NotificationManagerCompat.getEnabledListenerPackages(context)
-            .contains(context.packageName)
+        notifications = NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
+
+    val notificationPerm =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
 
     // The relay link comes and goes, so the hint has to follow it without navigation.
     LaunchedEffect(on) {
@@ -207,9 +216,14 @@ fun SyncSettingsScreen(
                             description = stringResource(R.string.sync_notification_description),
                             granted = notifications,
                             onClick = {
-                                context.startActivity(
-                                    Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                                )
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    )
+                                }
                             }
                         )
                     }
