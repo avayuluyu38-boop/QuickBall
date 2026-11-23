@@ -16,7 +16,7 @@ object SyncState {
     private const val K_ON = "on"
     private const val K_CODE = "code"
 
-    fun enabled(ctx: Context): Boolean = prefs(ctx).getBoolean(K_ON, false)
+    fun enabled(ctx: Context): Boolean = prefs(ctx).getBoolean(K_ON, true)
 
     fun running(): Boolean = SyncEngine.instance != null
 
@@ -38,7 +38,7 @@ object SyncState {
             code(ctx)
             SyncBoot.start(ctx)
         } else {
-            SyncBoot.stop()
+            SyncBoot.stop(ctx)
         }
     }
 

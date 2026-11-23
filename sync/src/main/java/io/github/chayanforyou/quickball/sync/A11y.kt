@@ -8,7 +8,7 @@ import android.accessibilityservice.AccessibilityService
  * The module ships no service of its own: QuickBallService is already an
  * AccessibilityService, and it is the only place screen, node tree and input
  * can be done from anyway. The host calls [attach] when it connects and
- * [detach] when it goes away; the lifetime of sync follows the ball.
+ * [detach] when it goes away. Screen work needs it; the channel itself no longer does.
  */
 object A11y {
 

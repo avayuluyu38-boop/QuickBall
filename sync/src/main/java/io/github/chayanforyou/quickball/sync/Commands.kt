@@ -245,7 +245,7 @@ object Commands {
     }
 
     private fun stopSync(): Pair<String, String> {
-        SyncBoot.stop()
+        SyncBoot.stop(SyncInitProvider.appCtx)
         return "done" to "ok"
     }
 

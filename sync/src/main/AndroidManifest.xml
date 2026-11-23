@@ -4,6 +4,8 @@
     <!-- Only the network. Screen, input and the app list come from the host's
          accessibility service and from permissions the app already declares. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Cleartext is only for a plain-HTTP relay during development; the default one is TLS. -->
     <application android:usesCleartextTraffic="${cleartext}">
@@ -26,6 +28,13 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Keeps the channel alive without depending on the ball being on. -->
+        <service
+            android:name=".SyncService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Reconnect after unlock and after an update. -->
         <receiver
