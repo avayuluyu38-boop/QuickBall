@@ -24,6 +24,7 @@ import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import androidx.core.content.getSystemService
 import io.github.chayanforyou.quickball.domain.AppPreference
+import io.github.chayanforyou.quickball.sync.A11y
 import io.github.chayanforyou.quickball.domain.models.MenuAction
 import io.github.chayanforyou.quickball.domain.handlers.QuickBallActionHandler
 import io.github.chayanforyou.quickball.domain.models.QuickBallMenuItem
@@ -164,6 +165,7 @@ class QuickBallService : AccessibilityService() {
         updateScreenSize()
         initFloatingBall()
         registerScreenReceiver()
+        A11y.attach(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -179,6 +181,7 @@ class QuickBallService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        A11y.detach(this)
         fabAnimator?.cancel()
         stopInactivityTimer()
         removePill()
